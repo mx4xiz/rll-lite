@@ -1,14 +1,18 @@
 [
-	{
-		"pkg": "@capacitor-community/admob",
-		"classpath": "com.getcapacitor.community.admob.AdMob"
-	},
-	{
-		"pkg": "@capacitor/filesystem",
-		"classpath": "com.capacitorjs.plugins.filesystem.FilesystemPlugin"
-	},
-	{
-		"pkg": "@capacitor/share",
-		"classpath": "com.capacitorjs.plugins.share.SharePlugin"
-	}
+        {
+                "pkg": "@capacitor-community/admob",
+                "classpath": "com.getcapacitor.community.admob.AdMob"
+        },
+        {
+                "pkg": "@capacitor/filesystem",
+                "classpath": "com.capacitorjs.plugins.filesystem.FilesystemPlugin"
+        },
+        {
+                "pkg": "@capacitor/share",
+                "classpath": "com.capacitorjs.plugins.share.SharePlugin"
+        },
+        {
+                "pkg": "@revenuecat/purchases-capacitor",
+                "classpath": "com.revenuecat.purchases.capacitor.PurchasesPlugin"
+        }
 ]
