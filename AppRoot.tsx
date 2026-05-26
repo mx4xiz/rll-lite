@@ -1,14 +1,11 @@
 import React from 'react';
 import { useAuth } from './hooks/useAuth';
-import { AuthPage } from './components/AuthPage';
 import App from './App';
 
 const LoadingScreen: React.FC = () => (
   <div
     className="min-h-screen bg-[#020617] text-white flex flex-col items-center justify-center"
-    style={{
-      backgroundImage: `radial-gradient(circle at top, rgba(37, 99, 235, 0.15), transparent)`
-    }}
+    style={{ backgroundImage: `radial-gradient(circle at top, rgba(37, 99, 235, 0.15), transparent)` }}
   >
     <h1
       className="font-orbitron text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-100 to-blue-500 uppercase tracking-tighter mb-6"
@@ -18,11 +15,7 @@ const LoadingScreen: React.FC = () => (
     </h1>
     <div className="flex gap-2">
       {[0, 1, 2].map(i => (
-        <div
-          key={i}
-          className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-          style={{ animationDelay: `${i * 0.15}s` }}
-        />
+        <div key={i} className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
       ))}
     </div>
     <p className="font-orbitron text-[9px] text-blue-500/50 uppercase tracking-widest mt-4 animate-pulse">
@@ -32,24 +25,22 @@ const LoadingScreen: React.FC = () => (
 );
 
 const AppRoot: React.FC = () => {
-  const { user, loading, error, signIn, signUp, resetPassword, clearError } = useAuth();
+  const { user, loading, signIn, signUp, signOut, resetPassword, error, clearError } = useAuth();
 
   if (loading) return <LoadingScreen />;
 
-  if (!user) {
-    return (
-      <AuthPage
-        onSignIn={signIn}
-        onSignUp={signUp}
-        onForgotPassword={resetPassword}
-        loading={loading}
-        error={error}
-        onClearError={clearError}
-      />
-    );
-  }
-
-  return <App userEmail={user.email} />;
+  return (
+    <App
+      userEmail={user?.email}
+      onSignIn={signIn}
+      onSignUp={signUp}
+      onSignOut={signOut}
+      onResetPassword={resetPassword}
+      authError={error}
+      onClearAuthError={clearError}
+      authLoading={loading}
+    />
+  );
 };
 
 export default AppRoot;
