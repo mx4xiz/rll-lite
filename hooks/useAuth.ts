@@ -18,22 +18,16 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthState({
-        user: session?.user ?? null,
-        session,
-        loading: false,
-        error: null,
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setAuthState({ user: session?.user ?? null, session, loading: false, error: null });
+      })
+      .catch(() => {
+        setAuthState({ user: null, session: null, loading: false, error: null });
       });
-    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthState({
-        user: session?.user ?? null,
-        session,
-        loading: false,
-        error: null,
-      });
+      setAuthState({ user: session?.user ?? null, session, loading: false, error: null });
     });
 
     return () => subscription.unsubscribe();
@@ -41,50 +35,58 @@ export const useAuth = () => {
 
   const signUp = useCallback(async (email: string, password: string) => {
     setAuthState(s => ({ ...s, loading: true, error: null }));
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      setAuthState(s => ({ ...s, loading: false, error: error.message }));
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setAuthState(s => ({ ...s, loading: false, error: error.message }));
+        return { success: false, needsConfirmation: false };
+      }
+      const needsConfirmation = !data.session;
+      setAuthState(s => ({ ...s, loading: false }));
+      return { success: true, needsConfirmation };
+    } catch {
+      setAuthState(s => ({ ...s, loading: false, error: 'Connection failed. Check your internet and try again.' }));
       return { success: false, needsConfirmation: false };
     }
-    const needsConfirmation = !data.session;
-    setAuthState(s => ({ ...s, loading: false }));
-    return { success: true, needsConfirmation };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     setAuthState(s => ({ ...s, loading: true, error: null }));
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setAuthState(s => ({ ...s, loading: false, error: error.message }));
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setAuthState(s => ({ ...s, loading: false, error: error.message }));
+        return false;
+      }
+      setAuthState(s => ({ ...s, loading: false }));
+      return true;
+    } catch {
+      setAuthState(s => ({ ...s, loading: false, error: 'Connection failed. Check your internet and try again.' }));
       return false;
     }
-    setAuthState(s => ({ ...s, loading: false }));
-    return true;
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try { await supabase.auth.signOut(); } catch {}
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
     setAuthState(s => ({ ...s, loading: true, error: null }));
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://rll.app/reset-password',
-    });
-    setAuthState(s => ({ ...s, loading: false, error: error?.message ?? null }));
-    return !error;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://rll.app/reset-password',
+      });
+      setAuthState(s => ({ ...s, loading: false, error: error?.message ?? null }));
+      return !error;
+    } catch {
+      setAuthState(s => ({ ...s, loading: false, error: 'Connection failed.' }));
+      return false;
+    }
   }, []);
 
   const clearError = useCallback(() => {
     setAuthState(s => ({ ...s, error: null }));
   }, []);
 
-  return {
-    ...authState,
-    signUp,
-    signIn,
-    signOut,
-    resetPassword,
-    clearError,
-  };
+  return { ...authState, signUp, signIn, signOut, resetPassword, clearError };
 };
