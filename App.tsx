@@ -13,6 +13,7 @@ import { DUNGEONS, SHOP_ITEMS, getLevelRequirement } from './constants';
 import { Codex } from './components/Codex';
 import { SkillsPage } from './components/SkillsPage';
 import StartupPage from './components/StartupPage';
+import { AuthPage } from './components/AuthPage';
 import { ReportExport } from './components/ReportExport';
 import { TaskList } from './components/TaskList';
 import { WorkshopPage } from './components/WorkshopPage';
@@ -305,7 +306,7 @@ const ConfirmationModal: React.FC<{ isOpen: boolean; title: string; message: str
     );
 };
 
-const StatusPage: React.FC<{ player: Player; onRename: (name: string) => void }> = ({ player, onRename }) => (<div className="w-full h-full"><PlayerStats player={player} onRename={onRename} /></div>);
+const StatusPage: React.FC<{ player: Player; onRename: (name: string) => void; onLoginPress?: () => void; userEmail?: string; onSignOut?: () => void }> = ({ player, onRename, onLoginPress, userEmail, onSignOut }) => (<div className="w-full h-full"><PlayerStats player={player} onRename={onRename} onLoginPress={onLoginPress} userEmail={userEmail} onSignOut={onSignOut} /></div>);
 
 const AchievementsPage: React.FC<{ achievements: Record<string, Achievement> }> = ({ achievements }) => {
     const list: Achievement[] = Object.values(achievements);
@@ -690,13 +691,25 @@ const InventoryPageWrapper: React.FC<{ inventory: Inventory; player: Player; onE
 const RATE_EVERY_N_LEVELS = 3; // show rate prompt every 3 level-ups
 const RATE_STORAGE_KEY = 'rll_levelups_since_rate';
 
-const App: React.FC<{ userEmail?: string }> = ({ userEmail }) => {
+interface AppProps {
+  userEmail?: string;
+  onSignIn: (email: string, password: string) => Promise<boolean>;
+  onSignUp: (email: string, password: string) => Promise<{ success: boolean; needsConfirmation: boolean }>;
+  onSignOut: () => Promise<void>;
+  onResetPassword: (email: string) => Promise<boolean>;
+  authError: string | null;
+  onClearAuthError: () => void;
+  authLoading: boolean;
+}
+
+const App: React.FC<AppProps> = ({ userEmail, onSignIn, onSignUp, onSignOut, onResetPassword, authError, onClearAuthError, authLoading }) => {
     const data = usePlayerData();
     const { isPro, purchasing, restoring, purchasePro, restorePurchases } = usePro();
     const [page, setPage] = useState<Page | 'startup'>('startup');
     const handleSignOut = useCallback(async () => {
-        await supabase.auth.signOut();
-    }, []);
+        await onSignOut();
+    }, [onSignOut]);
+    const [showAuthModal, setShowAuthModal] = useState(false);
     const [confirm, setConfirm] = useState<any>(null);
     const [showPromo, setShowPromo] = useState(false);
     const [showRate, setShowRate] = useState(false);
@@ -827,7 +840,7 @@ const App: React.FC<{ userEmail?: string }> = ({ userEmail }) => {
 
                 </div>
             );
-            case 'status': return <StatusPage player={data.player} onRename={data.renamePlayer} />;
+            case 'status': return <StatusPage player={data.player} onRename={data.renamePlayer} onLoginPress={!userEmail ? () => setShowAuthModal(true) : undefined} userEmail={userEmail} onSignOut={userEmail ? handleSignOut : undefined} />;
             case 'achievements': return <AchievementsPage achievements={data.achievements} />;
             case 'quests': return <QuestLogPage quests={data.quests} onComplete={handleCompleteQuest} onDelete={id => setConfirm({ title: 'Erase Entry', message: 'Permanently purge this quest record?', isDangerous: true, onConfirm: () => data.deleteQuest(id) })} onFail={id => data.failQuest(id)} onAddQuest={data.addQuest} onWatchAdForQuest={handleWatchAdForQuest} />;
             case 'skills': return <SkillsPage skills={data.skills} skillFolders={data.skillFolders} categories={data.categories} improveSkill={data.improveSkill} addSkill={data.addSkill} addSkillFolder={data.addSkillFolder} addCategory={data.addCategory} onDeleteSkill={data.deleteSkill} onDeleteSkillFolder={data.deleteSkillFolder} onDeleteCategory={data.deleteCategory} />;
@@ -844,7 +857,7 @@ const App: React.FC<{ userEmail?: string }> = ({ userEmail }) => {
     };
 
     if (page === 'startup') {
-        return <StartupPage onEnter={() => navigateTo('menu')} />;
+        return <StartupPage onEnter={() => navigateTo('menu')} onLoginPress={!userEmail ? () => setShowAuthModal(true) : undefined} userEmail={userEmail} />;
     }
 
     return (
@@ -957,6 +970,20 @@ const App: React.FC<{ userEmail?: string }> = ({ userEmail }) => {
                     purchasing={purchasing}
                     restoring={restoring}
                 />
+            )}
+            {showAuthModal && (
+                <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[500] flex items-end justify-center" onClick={() => setShowAuthModal(false)}>
+                    <div className="w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                        <AuthPage
+                            onSignIn={async (email, password) => { const ok = await onSignIn(email, password); if (ok) setShowAuthModal(false); return ok; }}
+                            onSignUp={onSignUp}
+                            onForgotPassword={onResetPassword}
+                            loading={authLoading}
+                            error={authError}
+                            onClearError={onClearAuthError}
+                        />
+                    </div>
+                </div>
             )}
         </div>
     );
